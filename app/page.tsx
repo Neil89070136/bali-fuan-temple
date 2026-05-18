@@ -38,13 +38,35 @@ export default function FuanTempleWebsite() {
     ['首頁', 'home'],
     ['福安寺介紹', 'about'],
     ['神佛博物館', 'museum'],
+    ['福安商城', 'shop'],
     ['建寺護持', 'donate'],
+  ];
+
+  const products = [
+    {
+      title: '平安護身符',
+      price: '$680',
+      image:
+        'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=1200&auto=format&fit=crop',
+    },
+    {
+      title: '招財金牌',
+      price: '$1,280',
+      image:
+        'https://images.unsplash.com/photo-1617038220319-276d3cfab638?q=80&w=1200&auto=format&fit=crop',
+    },
+    {
+      title: '福安香火禮盒',
+      price: '$2,080',
+      image:
+        'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1200&auto=format&fit=crop',
+    },
   ];
 
   return (
     <div className="min-h-screen bg-[#f8f4ec] text-gray-800">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-yellow-700/20 bg-[#450000]/95 text-white backdrop-blur-xl">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-yellow-700/20 bg-[#450000]/95 text-white backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div>
             <h1 className="text-2xl font-black tracking-[0.2em]">
@@ -180,6 +202,55 @@ export default function FuanTempleWebsite() {
           <p className="mx-auto max-w-3xl text-lg leading-9 text-gray-200">
             收錄台灣神佛文化、歷史故事與祭祀知識，建立屬於台灣的信仰文化典藏平台。
           </p>
+        </div>
+      </section>
+
+      {/* Shop */}
+      <section id="shop" className="bg-[#f6efe4] px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 text-center">
+            <p className="mb-3 text-sm tracking-[0.4em] text-yellow-700">
+              FU AN STORE
+            </p>
+
+            <h3 className="mb-6 text-5xl font-black text-[#680000]">
+              福安商城
+            </h3>
+
+            <p className="mx-auto max-w-3xl text-lg leading-9 text-gray-600">
+              精選護身平安商品、文創紀念品與宗教典藏，未來可擴充真正線上購物與金流系統。
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((item) => (
+              <div
+                key={item.title}
+                className="overflow-hidden rounded-[2rem] bg-white shadow-xl transition hover:-translate-y-2"
+              >
+                <div
+                  className="h-72 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${item.image})`,
+                  }}
+                />
+
+                <div className="p-8">
+                  <h4 className="mb-3 text-3xl font-black text-[#680000]">
+                    {item.title}
+                  </h4>
+
+                  <p className="mb-6 text-xl font-bold text-yellow-700">
+                    {item.price}
+                  </p>
+
+                  <button className="w-full rounded-2xl bg-[#680000] px-6 py-4 text-lg font-bold text-white transition hover:bg-[#8d0000]">
+                    查看商品
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
