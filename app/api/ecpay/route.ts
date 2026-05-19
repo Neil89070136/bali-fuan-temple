@@ -15,8 +15,13 @@ function generateCheckMacValue(params: Record<string, string>) {
   const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/'/g, "%27")
-    .replace(/~/g, "%7e");
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 
   return crypto
     .createHash("sha256")
@@ -26,10 +31,12 @@ function generateCheckMacValue(params: Record<string, string>) {
 }
 
 export async function GET() {
-  const order: Record<string, string> = {
+  const orderData: Record<string, string> = {
     MerchantID: "3002607",
     MerchantTradeNo: `FUAN${Date.now()}`,
-    MerchantTradeDate: "2026/05/20 12:00:00",
+    MerchantTradeDate: new Date()
+      .toLocaleString("sv-SE")
+      .replace("T", " "),
     PaymentType: "aio",
     TotalAmount: "100",
     TradeDesc: "福安寺建寺護持",
@@ -39,37 +46,33 @@ export async function GET() {
     EncryptType: "1",
   };
 
-  const CheckMacValue = generateCheckMacValue(order);
+  const CheckMacValue = generateCheckMacValue(orderData);
 
-  const formInputs = Object.entries({
-    ...order,
+  const formData = {
+    ...orderData,
     CheckMacValue,
-  })
-    .map(
-      ([key, value]) =>
-        `<input type="hidden" name="${key}" value="${value}" />`
-    )
-    .join("");
+  };
 
-  const html = `
-    <html>
-      <body>
-        <form
-          id="ecpay-form"
-          method="post"
-          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
-        >
-          ${formInputs}
-        </form>
+  const formHtml = `
+  <html>
+    <body>
+      <form id="ecpayForm" method="post" action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+        ${Object.entries(formData)
+          .map(
+            ([key, value]) =>
+              `<input type="hidden" name="${key}" value="${value}" />`
+          )
+          .join("")}
+      </form>
 
-        <script>
-          document.getElementById('ecpay-form').submit();
-        </script>
-      </body>
-    </html>
+      <script>
+        document.getElementById("ecpayForm").submit();
+      </script>
+    </body>
+  </html>
   `;
 
-  return new NextResponse(html, {
+  return new Response(formHtml, {
     headers: {
       "Content-Type": "text/html",
     },
