@@ -5,8 +5,7 @@ const HASH_KEY = "5294y06JbISpM5x9";
 const HASH_IV = "v77hoKGq4kWxNNIS";
 
 function generateCheckMacValue(params: Record<string, string>): string {
-  const sorted = Object.keys(params)
-    .sort((a, b) => a.localeCompare(b))
+  const sorted = Object.keys(params).sort()
     .map((key) => `${key}=${params[key]}`)
     .join("&");
 
@@ -52,9 +51,9 @@ export async function GET() {
 
     TotalAmount: "100",
 
-    TradeDesc: encodeURIComponent("FUAN TEMPLE"),
+    TradeDesc: "FUAN TEMPLE",
 
-    ItemName: encodeURIComponent("Donation"),
+    ItemName: "Donation",
 
     ReturnURL: "https://developers.ecpay.com.tw/",
 
