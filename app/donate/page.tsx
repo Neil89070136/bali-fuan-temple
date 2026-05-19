@@ -1,88 +1,34 @@
+"use client";
+
 export default function DonatePage() {
+  const handleDonate = async () => {
+    const res = await fetch("/api/ecpay", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    console.log(data);
+
+    alert("綠界付款資料已建立！");
+  };
+
   return (
-    <div className="min-h-screen bg-[#2b0000] px-6 py-24 text-white">
-      <div className="mx-auto max-w-xl rounded-[2rem] bg-white/10 p-10 backdrop-blur-xl">
-        <h1 className="mb-6 text-center text-5xl font-black text-yellow-300">
-          建寺護持
-        </h1>
+    <main className="min-h-screen bg-[#2b0000] text-white flex flex-col items-center justify-center px-6">
+      <h1 className="text-5xl font-bold mb-6 text-yellow-400">
+        建寺護持
+      </h1>
 
-        <p className="mb-10 text-center text-lg text-gray-200">
-          您的每份善念，都是福安寺的重要力量。
-        </p>
+      <p className="mb-10 text-center max-w-xl leading-8">
+        您的每一份護持，都將成為福安寺建設的重要力量。
+      </p>
 
-        <form
-          method="POST"
-          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
-          className="space-y-4"
-        >
-          <input
-            type="hidden"
-            name="MerchantID"
-            value="3002607"
-          />
-
-          <input
-            type="hidden"
-            name="MerchantTradeNo"
-            value={`FUAN${Date.now()}`}
-          />
-
-          <input
-            type="hidden"
-            name="MerchantTradeDate"
-            value="2026/05/20 12:00:00"
-          />
-
-          <input
-            type="hidden"
-            name="PaymentType"
-            value="aio"
-          />
-
-          <input
-            type="hidden"
-            name="TotalAmount"
-            value="100"
-          />
-
-          <input
-            type="hidden"
-            name="TradeDesc"
-            value="福安寺建寺護持"
-          />
-
-          <input
-            type="hidden"
-            name="ItemName"
-            value="建寺護持"
-          />
-
-          <input
-            type="hidden"
-            name="ReturnURL"
-            value="https://example.com"
-          />
-
-          <input
-            type="hidden"
-            name="ChoosePayment"
-            value="ALL"
-          />
-
-          <input
-            type="hidden"
-            name="EncryptType"
-            value="1"
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded-2xl bg-yellow-400 px-8 py-5 text-xl font-black text-black transition hover:scale-105"
-          >
-            前往綠界付款
-          </button>
-        </form>
-      </div>
-    </div>
+      <button
+        onClick={handleDonate}
+        className="bg-yellow-400 text-black px-10 py-4 rounded-xl text-xl font-bold hover:scale-105 transition"
+      >
+        我要護持捐款
+      </button>
+    </main>
   );
 }
