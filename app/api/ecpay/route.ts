@@ -43,14 +43,25 @@ export async function GET() {
 
   const orderData: Record<string, string> = {
     MerchantID: "3002607",
-    MerchantTradeNo: `FUAN${Date.now()}`,
+
+    MerchantTradeNo: `FUAN${Date.now().toString().slice(-10)}`,
+
     MerchantTradeDate,
+
     PaymentType: "aio",
+
     TotalAmount: "100",
-    TradeDesc: "FUAN TEMPLE",
-    ItemName: "Donation",
+
+    TradeDesc: encodeURIComponent("FUAN TEMPLE"),
+
+    ItemName: encodeURIComponent("Donation"),
+
     ReturnURL: "https://developers.ecpay.com.tw/",
+
+    ClientBackURL: "https://bali-fuan-template.vercel.app",
+
     ChoosePayment: "ALL",
+
     EncryptType: "1",
   };
 
