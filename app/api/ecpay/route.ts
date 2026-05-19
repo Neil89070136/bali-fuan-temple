@@ -1,101 +1,57 @@
-import { NextRequest } from "next/server";
-import crypto from "crypto";
+import { NextResponse } from "next/server";
 
-function getTradeDate() {
-  const now = new Date();
-
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mi = String(now.getMinutes()).padStart(2, "0");
-  const ss = String(now.getSeconds()).padStart(2, "0");
-
-  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
-}
-
-function generateCheckMacValue(data: Record<string, string>) {
-  const HashKey = "5294y06JbISpM5x9";
-  const HashIV = "v77hoKGq4kWxNNIS";
-
-  const sorted = Object.keys(data)
-    .sort((a, b) => a.localeCompare(b))
-    .map((key) => `${key}=${data[key]}`)
-    .join("&");
-
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
-
-  const encoded = encodeURIComponent(raw)
-    .toLowerCase()
-    .replace(/%20/g, "+")
-    .replace(/'/g, "%27")
-    .replace(/~/g, "%7e");
-
-  return crypto
-    .createHash("sha256")
-    .update(encoded)
-    .digest("hex")
-    .toUpperCase();
-}
-
-export async function GET(req: NextRequest) {
-  const baseUrl = req.nextUrl.origin;
-
-  const orderData: Record<string, string> = {
+const options = {
+  OperationMode: "Test",
+  MercProfile: {
     MerchantID: "3002607",
+    HashKey: "5294y06JbISpM5x9",
+    HashIV: "v77hoKGq4kWxNNIS",
+  },
+  IgnorePayment: [],
+  IsProjectContractor: false,
+};
 
-    MerchantTradeNo: `FUAN${Date.now()}`,
+export async function GET() {
+  try {
+    // @ts-ignore
+    const ecpay_payment = require("ecpay_aio_nodejs");
 
-    MerchantTradeDate: getTradeDate(),
+    const create = new ecpay_payment(options);
 
-    PaymentType: "aio",
+    const date = new Date();
 
-    TotalAmount: "100",
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
 
-    TradeDesc: "Test",
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mi = String(date.getMinutes()).padStart(2, "0");
+    const ss = String(date.getSeconds()).padStart(2, "0");
 
-    ItemName: "Donation",
+    const tradeDate = `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
 
-    ReturnURL: "https://developers.ecpay.com.tw/",
+    const base_param = {
+      MerchantTradeNo: `FUAN${Date.now()}`,
+      MerchantTradeDate: tradeDate,
+      TotalAmount: "100",
+      TradeDesc: "Test",
+      ItemName: "Donation",
+      ReturnURL: "https://developers.ecpay.com.tw/",
+      ChoosePayment: "ALL",
+      ClientBackURL: "https://developers.ecpay.com.tw/",
+    };
 
-    ChoosePayment: "ALL",
+    const html = create.payment_client.aio_check_out_all(base_param);
 
-    EncryptType: "1",
-  };
-
-  const CheckMacValue = generateCheckMacValue(orderData);
-
-  const formData = {
-    ...orderData,
-    CheckMacValue,
-  };
-
-  const html = `
-  <html>
-    <body onload="document.forms[0].submit()">
-
-      <form
-        method="post"
-        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
-      >
-
-        ${Object.entries(formData)
-          .map(
-            ([key, value]) =>
-              `<input type="hidden" name="${key}" value="${value}" />`
-          )
-          .join("")}
-
-      </form>
-
-    </body>
-  </html>
-  `;
-
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html",
-    },
-  });
+    return new Response(html, {
+      headers: {
+        "Content-Type": "text/html",
+      },
+    });
+  } catch (error: any) {
+    return NextResponse.json({
+      error: true,
+      message: error.message,
+    });
+  }
 }
