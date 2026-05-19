@@ -1,21 +1,18 @@
+import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-function getTradeDate() {
-  const date = new Date();
+function generateCheckMacValue(data: Record<string, string>) {
+  const HashKey = "5294y06JbISpM5x9";
+  const HashIV = "v77hoKGq4kWxNNIS";
 
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
+  const sorted = Object.keys(data)
+    .sort((a, b) => a.localeCompare(b))
+    .map((key) => `${key}=${data[key]}`)
+    .join("&");
 
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mi = String(date.getMinutes()).padStart(2, "0");
-  const ss = String(date.getSeconds()).padStart(2, "0");
+  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
-  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
-}
-
-function ecpayEncode(str: string) {
-  return encodeURIComponent(str)
+  const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
     .replace(/%2d/g, "-")
@@ -25,20 +22,6 @@ function ecpayEncode(str: string) {
     .replace(/%2a/g, "*")
     .replace(/%28/g, "(")
     .replace(/%29/g, ")");
-}
-
-function generateCheckMacValue(params: Record<string, string>) {
-  const HashKey = "5294y06JbISpM5x9";
-  const HashIV = "v77hoKGq4kWxNNIS";
-
-  const sorted = Object.keys(params)
-    .sort((a, b) => a.localeCompare(b))
-    .map((key) => `${key}=${params[key]}`)
-    .join("&");
-
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
-
-  const encoded = ecpayEncode(raw);
 
   return crypto
     .createHash("sha256")
@@ -48,61 +31,55 @@ function generateCheckMacValue(params: Record<string, string>) {
 }
 
 export async function GET() {
-  const order = {
+  const MerchantTradeDate = new Date()
+    .toLocaleString("sv-SE")
+    .replace("T", " ");
+
+  const orderData: Record<string, string> = {
     MerchantID: "3002607",
-
     MerchantTradeNo: `FUAN${Date.now()}`,
-
-    MerchantTradeDate: getTradeDate(),
-
+    MerchantTradeDate,
     PaymentType: "aio",
-
     TotalAmount: "100",
-
-    TradeDesc: "test",
-
-    ItemName: "test",
-
+    TradeDesc: "福安寺建寺護持",
+    ItemName: "建寺護持",
     ReturnURL: "https://developers.ecpay.com.tw/",
-
     ChoosePayment: "ALL",
-
     EncryptType: "1",
   };
 
-  const CheckMacValue = generateCheckMacValue(order);
+  const CheckMacValue = generateCheckMacValue(orderData);
 
   const formData = {
-    ...order,
+    ...orderData,
     CheckMacValue,
   };
 
-  return new Response(
-    `
-    <html>
-      <body onload="document.forms[0].submit()">
+  const html = `
+  <html>
+    <body>
+      <form id="ecpay-form" method="post"
+        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-        <form
-          method="POST"
-          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
-        >
+        ${Object.entries(formData)
+          .map(
+            ([key, value]) =>
+              `<input type="hidden" name="${key}" value="${value}" />`
+          )
+          .join("")}
 
-          ${Object.entries(formData)
-            .map(
-              ([key, value]) =>
-                `<input type="hidden" name="${key}" value="${value}" />`
-            )
-            .join("")}
+      </form>
 
-        </form>
+      <script>
+        document.getElementById("ecpay-form").submit();
+      </script>
+    </body>
+  </html>
+  `;
 
-      </body>
-    </html>
-  `,
-    {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    }
-  );
+  return new NextResponse(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
 }
