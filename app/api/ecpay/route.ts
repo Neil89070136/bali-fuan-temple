@@ -29,13 +29,8 @@ function generateCheckMacValue(data: Record<string, string>) {
   const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
-    .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+    .replace(/'/g, "%27")
+    .replace(/~/g, "%7e");
 
   return crypto
     .createHash("sha256")
@@ -58,15 +53,11 @@ export async function GET(req: NextRequest) {
 
     TotalAmount: "100",
 
-    TradeDesc: "FUAN",
+    TradeDesc: "Test",
 
     ItemName: "Donation",
 
-    ReturnURL: `${baseUrl}/api/ecpay/return`,
-
-    OrderResultURL: `${baseUrl}/donate-success`,
-
-    ClientBackURL: `${baseUrl}`,
+    ReturnURL: "https://developers.ecpay.com.tw/",
 
     ChoosePayment: "ALL",
 
@@ -82,9 +73,9 @@ export async function GET(req: NextRequest) {
 
   const html = `
   <html>
-    <body>
+    <body onload="document.forms[0].submit()">
+
       <form
-        id="ecpay-form"
         method="post"
         action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
       >
@@ -98,9 +89,6 @@ export async function GET(req: NextRequest) {
 
       </form>
 
-      <script>
-        document.getElementById("ecpay-form").submit();
-      </script>
     </body>
   </html>
   `;
