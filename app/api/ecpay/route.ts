@@ -5,20 +5,20 @@ function generateCheckMacValue(data: Record<string, string>) {
   const HashKey = "5294y06JbISpM5x9";
   const HashIV = "v77hoKGq4kWxNNIS";
 
-  const sorted = Object.keys(data)
-    .sort()
+  const sortedData = Object.keys(data)
+    .sort((a, b) => a.localeCompare(b))
     .map((key) => `${key}=${data[key]}`)
     .join("&");
 
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+  const raw = `HashKey=${HashKey}&${sortedData}&HashIV=${HashIV}`;
 
   const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/!/g, "%21")
-    .replace(/\(/g, "%28")
-    .replace(/\)/g, "%29")
-    .replace(/\*/g, "%2a");
+    .replace(/%21/g, "!")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")")
+    .replace(/%2a/g, "*");
 
   return CryptoJS.SHA256(encoded).toString().toUpperCase();
 }
