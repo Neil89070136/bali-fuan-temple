@@ -11,10 +11,25 @@ export default function DonatePage() {
 
       console.log(data);
 
-      alert("準備跳轉綠界金流！");
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action =
+        "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
+
+      Object.entries(data).forEach(([key, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value as string;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+
+      form.submit();
     } catch (error) {
       console.error(error);
-      alert("發生錯誤");
+      alert("付款建立失敗");
     }
   };
 
