@@ -5,31 +5,29 @@ const HASH_KEY = "5294y06JbISpM5x9";
 const HASH_IV = "v77hoKGq4kWxNNIS";
 
 function generateCheckMacValue(params: Record<string, string>): string {
-  const sortedKeys = Object.keys(params).sort();
-
-  let rawStr = sortedKeys
+  const sorted = Object.keys(params)
+    .sort((a, b) => a.localeCompare(b))
     .map((key) => `${key}=${params[key]}`)
     .join("&");
 
-  rawStr = `HashKey=${HASH_KEY}&${rawStr}&HashIV=${HASH_IV}`;
+  const raw = `HashKey=${HASH_KEY}&${sorted}&HashIV=${HASH_IV}`;
 
-  const urlEncoded = encodeURIComponent(rawStr)
-    .replace(/%2D/g, "-")
-    .replace(/%5F/g, "_")
-    .replace(/%2E/g, ".")
-    .replace(/%21/g, "!")
-    .replace(/%2A/g, "*")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")")
+  const encoded = encodeURIComponent(raw)
+    .toLowerCase()
     .replace(/%20/g, "+")
-    .toLowerCase();
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 
-  const hash = crypto
+  return crypto
     .createHash("sha256")
-    .update(urlEncoded)
-    .digest("hex");
-
-  return hash.toUpperCase();
+    .update(encoded)
+    .digest("hex")
+    .toUpperCase();
 }
 
 export async function GET() {
@@ -49,8 +47,8 @@ export async function GET() {
     MerchantTradeDate,
     PaymentType: "aio",
     TotalAmount: "100",
-    TradeDesc: "福安寺建寺護持",
-    ItemName: "建寺護持",
+    TradeDesc: "FUAN TEMPLE",
+    ItemName: "Donation",
     ReturnURL: "https://developers.ecpay.com.tw/",
     ChoosePayment: "ALL",
     EncryptType: "1",
@@ -58,23 +56,25 @@ export async function GET() {
 
   const CheckMacValue = generateCheckMacValue(orderData);
 
+  const formData = {
+    ...orderData,
+    CheckMacValue,
+  };
+
   const html = `
     <html>
       <body>
-        <form id="ecpay-form"
+        <form
+          id="ecpay-form"
           method="post"
-          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
-
-          ${Object.entries({
-            ...orderData,
-            CheckMacValue,
-          })
+          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
+        >
+          ${Object.entries(formData)
             .map(
               ([key, value]) =>
                 `<input type="hidden" name="${key}" value="${value}" />`
             )
             .join("")}
-
         </form>
 
         <script>
