@@ -2,15 +2,20 @@
 
 export default function DonatePage() {
   const handleDonate = async () => {
-    const res = await fetch("/api/ecpay", {
-      method: "POST",
-    });
+    try {
+      const res = await fetch("/api/ecpay", {
+        method: "POST",
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    console.log(data);
+      console.log(data);
 
-    alert("綠界付款資料已建立！");
+      alert("綠界付款資料已建立！");
+    } catch (error) {
+      console.error(error);
+      alert("發生錯誤");
+    }
   };
 
   return (
@@ -27,8 +32,8 @@ export default function DonatePage() {
         onClick={handleDonate}
         className="bg-yellow-400 text-black px-10 py-4 rounded-xl text-xl font-bold hover:scale-105 transition"
       >
-        我要護持捐款
+        我要護持
       </button>
     </main>
   );
-} 
+}
