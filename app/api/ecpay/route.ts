@@ -1,44 +1,76 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+
+function generateCheckMacValue(params: Record<string, string>) {
+  const HashKey = "5294y06JbISpM5x9";
+  const HashIV = "v77hoKGq4kWxNNIS";
+
+  const sorted = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+
+  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+
+  const encoded = encodeURIComponent(raw)
+    .toLowerCase()
+    .replace(/%20/g, "+")
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
+
+  return crypto
+    .createHash("sha256")
+    .update(encoded)
+    .digest("hex")
+    .toUpperCase();
+}
 
 export async function GET() {
-  try {
-    const ecpay_payment = require("ecpay_aio_nodejs");
+  const order = {
+    MerchantID: "3002607",
+    MerchantTradeNo: `FUAN${Date.now()}`,
+    MerchantTradeDate: "2026/05/20 12:00:00",
+    PaymentType: "aio",
+    TotalAmount: "100",
+    TradeDesc: "福安寺建寺護持",
+    ItemName: "建寺護持",
+    ReturnURL: "https://developers.ecpay.com.tw/",
+    ChoosePayment: "ALL",
+    EncryptType: "1",
+  };
 
-    const options = {
-      OperationMode: "Test",
-      MercProfile: {
-        MerchantID: "3002607",
-        HashKey: "5294y06JbISpM5x9",
-        HashIV: "v77hoKGq4kWxNNIS",
-      },
-      IgnorePayment: [],
-      IsProjectContractor: false,
-    };
+  const CheckMacValue = generateCheckMacValue(order);
 
-    const create = new ecpay_payment(options);
+  const html = `
+    <html>
+      <body>
+        <form id="ecpay-form" method="post" action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+          ${Object.entries({
+            ...order,
+            CheckMacValue,
+          })
+            .map(
+              ([key, value]) =>
+                `<input type="hidden" name="${key}" value="${value}" />`
+            )
+            .join("")}
+        </form>
 
-    const order = {
-      MerchantTradeNo: `FUAN${Date.now()}`,
-      MerchantTradeDate: "2026/05/20 12:00:00",
-      TotalAmount: "100",
-      TradeDesc: "福安寺建寺護持",
-      ItemName: "建寺護持",
-      ReturnURL: "https://developers.ecpay.com.tw/",
-      ChoosePayment: "ALL",
-      EncryptType: 1,
-    };
+        <script>
+          document.getElementById("ecpay-form").submit();
+        </script>
+      </body>
+    </html>
+  `;
 
-    const html = create.payment_client.aio_check_out_all(order);
-
-    return new NextResponse(html, {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    });
-  } catch (err: any) {
-    return NextResponse.json({
-      error: true,
-      message: err.message,
-    });
-  }
+  return new NextResponse(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
 }
