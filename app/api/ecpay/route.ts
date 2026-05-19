@@ -6,7 +6,7 @@ function generateCheckMacValue(params: Record<string, string>) {
   const HashIV = "v77hoKGq4kWxNNIS";
 
   const sorted = Object.keys(params)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .map((key) => `${key}=${params[key]}`)
     .join("&");
 
@@ -31,7 +31,7 @@ function generateCheckMacValue(params: Record<string, string>) {
 }
 
 export async function GET() {
-  const order = {
+  const order: Record<string, string> = {
     MerchantID: "3002607",
     MerchantTradeNo: `FUAN${Date.now()}`,
     MerchantTradeDate: "2026/05/20 12:00:00",
@@ -46,23 +46,26 @@ export async function GET() {
 
   const CheckMacValue = generateCheckMacValue(order);
 
+  const formInputs = Object.entries({
+    ...order,
+    CheckMacValue,
+  })
+    .map(
+      ([key, value]) =>
+        `<input type="hidden" name="${key}" value="${value}" />`
+    )
+    .join("");
+
   const html = `
     <html>
       <body>
-        <form id="ecpay-form" method="post" action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
-          ${Object.entries({
-            ...order,
-            CheckMacValue,
-          })
-            .map(
-              ([key, value]) =>
-                `<input type="hidden" name="${key}" value="${value}" />`
-            )
-            .join("")}
+        <form id="ecpay-form" method="post"
+          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+          ${formInputs}
         </form>
 
         <script>
-          document.getElementById("ecpay-form").submit();
+          document.getElementById('ecpay-form').submit();
         </script>
       </body>
     </html>
