@@ -1,37 +1,40 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-function generateCheckMacValue(data: Record<string, string>) {
-  const HashKey = "5294y06JbISpM5x9";
-  const HashIV = "v77hoKGq4kWxNNIS";
+const HASH_KEY = "5294y06JbISpM5x9";
+const HASH_IV = "v77hoKGq4kWxNNIS";
 
-  const sorted = Object.keys(data)
-    .sort((a, b) => a.localeCompare(b))
-    .map((key) => `${key}=${data[key]}`)
+function generateCheckMacValue(params: Record<string, string>): string {
+  const sortedKeys = Object.keys(params).sort();
+
+  let rawStr = sortedKeys
+    .map((key) => `${key}=${params[key]}`)
     .join("&");
 
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+  rawStr = `HashKey=${HASH_KEY}&${rawStr}&HashIV=${HASH_IV}`;
 
-  const encoded = encodeURIComponent(raw)
-    .toLowerCase()
-    .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
+  const urlEncoded = encodeURIComponent(rawStr)
+    .replace(/%2D/g, "-")
+    .replace(/%5F/g, "_")
+    .replace(/%2E/g, ".")
     .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
+    .replace(/%2A/g, "*")
     .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+    .replace(/%29/g, ")")
+    .replace(/%20/g, "+")
+    .toLowerCase();
 
-  return crypto
+  const hash = crypto
     .createHash("sha256")
-    .update(encoded)
-    .digest("hex")
-    .toUpperCase();
+    .update(urlEncoded)
+    .digest("hex");
+
+  return hash.toUpperCase();
 }
 
 export async function GET() {
   const now = new Date();
+
   const MerchantTradeDate =
     `${now.getFullYear()}/` +
     `${String(now.getMonth() + 1).padStart(2, "0")}/` +
@@ -55,31 +58,30 @@ export async function GET() {
 
   const CheckMacValue = generateCheckMacValue(orderData);
 
-  const formData = {
-    ...orderData,
-    CheckMacValue,
-  };
-
   const html = `
-  <html>
-    <body>
-      <form id="ecpay-form" method="post"
-        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+    <html>
+      <body>
+        <form id="ecpay-form"
+          method="post"
+          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-        ${Object.entries(formData)
-          .map(
-            ([key, value]) =>
-              `<input type="hidden" name="${key}" value="${value}" />`
-          )
-          .join("")}
+          ${Object.entries({
+            ...orderData,
+            CheckMacValue,
+          })
+            .map(
+              ([key, value]) =>
+                `<input type="hidden" name="${key}" value="${value}" />`
+            )
+            .join("")}
 
-      </form>
+        </form>
 
-      <script>
-        document.getElementById("ecpay-form").submit();
-      </script>
-    </body>
-  </html>
+        <script>
+          document.getElementById("ecpay-form").submit();
+        </script>
+      </body>
+    </html>
   `;
 
   return new NextResponse(html, {
