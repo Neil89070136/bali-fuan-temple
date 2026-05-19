@@ -1,36 +1,8 @@
 "use client";
 
 export default function DonatePage() {
-  const handleDonate = async () => {
-    try {
-      const res = await fetch("/api/ecpay", {
-        method: "POST",
-      });
-
-      const data = await res.json();
-
-      console.log(data);
-
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action =
-        "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
-
-      Object.entries(data).forEach(([key, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value as string;
-        form.appendChild(input);
-      });
-
-      document.body.appendChild(form);
-
-      form.submit();
-    } catch (error) {
-      console.error(error);
-      alert("付款建立失敗");
-    }
+  const handleDonate = () => {
+    window.location.href = "/api/ecpay";
   };
 
   return (
