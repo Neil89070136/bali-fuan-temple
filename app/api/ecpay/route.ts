@@ -1,17 +1,30 @@
 import crypto from "crypto";
 
 function getTradeDate() {
-  const now = new Date();
+  const date = new Date();
 
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
 
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mi = String(now.getMinutes()).padStart(2, "0");
-  const ss = String(now.getSeconds()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
 
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
+}
+
+function ecpayEncode(str: string) {
+  return encodeURIComponent(str)
+    .toLowerCase()
+    .replace(/%20/g, "+")
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 }
 
 function generateCheckMacValue(params: Record<string, string>) {
@@ -25,20 +38,11 @@ function generateCheckMacValue(params: Record<string, string>) {
 
   const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
-  const urlEncoded = encodeURIComponent(raw)
-    .toLowerCase()
-    .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
-    .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+  const encoded = ecpayEncode(raw);
 
   return crypto
     .createHash("sha256")
-    .update(urlEncoded)
+    .update(encoded)
     .digest("hex")
     .toUpperCase();
 }
@@ -55,9 +59,9 @@ export async function GET() {
 
     TotalAmount: "100",
 
-    TradeDesc: "Test",
+    TradeDesc: "test",
 
-    ItemName: "Donation",
+    ItemName: "test",
 
     ReturnURL: "https://developers.ecpay.com.tw/",
 
@@ -68,32 +72,37 @@ export async function GET() {
 
   const CheckMacValue = generateCheckMacValue(order);
 
-  const form = `
-  <html>
-    <body onload="document.forms[0].submit()">
+  const formData = {
+    ...order,
+    CheckMacValue,
+  };
 
-      <form method="POST"
-        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+  return new Response(
+    `
+    <html>
+      <body onload="document.forms[0].submit()">
 
-        ${Object.entries({
-          ...order,
-          CheckMacValue,
-        })
-          .map(
-            ([key, value]) =>
-              `<input type="hidden" name="${key}" value="${value}" />`
-          )
-          .join("")}
+        <form
+          method="POST"
+          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
+        >
 
-      </form>
+          ${Object.entries(formData)
+            .map(
+              ([key, value]) =>
+                `<input type="hidden" name="${key}" value="${value}" />`
+            )
+            .join("")}
 
-    </body>
-  </html>
-  `;
+        </form>
 
-  return new Response(form, {
-    headers: {
-      "Content-Type": "text/html",
-    },
-  });
+      </body>
+    </html>
+  `,
+    {
+      headers: {
+        "Content-Type": "text/html",
+      },
+    }
+  );
 }
