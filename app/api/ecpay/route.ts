@@ -1,6 +1,20 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 
+function getTradeDate() {
+  const now = new Date();
+
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mi = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
+}
+
 function generateCheckMacValue(data: Record<string, string>) {
   const HashKey = "5294y06JbISpM5x9";
   const HashIV = "v77hoKGq4kWxNNIS";
@@ -38,9 +52,7 @@ export async function GET(req: NextRequest) {
 
     MerchantTradeNo: `FUAN${Date.now()}`,
 
-    MerchantTradeDate: new Date()
-      .toLocaleString("sv-SE")
-      .replace("T", " "),
+    MerchantTradeDate: getTradeDate(),
 
     PaymentType: "aio",
 
@@ -71,9 +83,11 @@ export async function GET(req: NextRequest) {
   const html = `
   <html>
     <body>
-      <form id="ecpay-form"
+      <form
+        id="ecpay-form"
         method="post"
-        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
+      >
 
         ${Object.entries(formData)
           .map(
