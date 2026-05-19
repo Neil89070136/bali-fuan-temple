@@ -1,46 +1,37 @@
 import { NextResponse } from "next/server";
-import CryptoJS from "crypto-js";
 
-function generateCheckMacValue(data: Record<string, string>) {
-  const HashKey = "5294y06JbISpM5x9";
-  const HashIV = "v77hoKGq4kWxNNIS";
-
-  const sortedData = Object.keys(data)
-    .sort((a, b) => a.localeCompare(b))
-    .map((key) => `${key}=${data[key]}`)
-    .join("&");
-
-  const raw = `HashKey=${HashKey}&${sortedData}&HashIV=${HashIV}`;
-
-  const encoded = encodeURIComponent(raw)
-    .toLowerCase()
-    .replace(/%20/g, "+")
-    .replace(/%21/g, "!")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")")
-    .replace(/%2a/g, "*");
-
-  return CryptoJS.SHA256(encoded).toString().toUpperCase();
-}
+const options = {
+  OperationMode: "Test",
+  MercProfile: {
+    MerchantID: "3002607",
+    HashKey: "5294y06JbISpM5x9",
+    HashIV: "v77hoKGq4kWxNNIS",
+  },
+  IgnorePayment: [],
+  IsProjectContractor: false,
+};
 
 export async function POST() {
-  const orderData: Record<string, string> = {
-    MerchantID: "3002607",
+  const ecpay_payment = require("ecpay_aio_nodejs");
+
+  const create = new ecpay_payment(options);
+
+  const order = {
     MerchantTradeNo: `FUAN${Date.now()}`,
     MerchantTradeDate: "2026/05/20 12:00:00",
-    PaymentType: "aio",
     TotalAmount: "100",
     TradeDesc: "福安寺建寺護持",
     ItemName: "建寺護持",
     ReturnURL: "https://developers.ecpay.com.tw/",
     ChoosePayment: "ALL",
-    EncryptType: "1",
+    EncryptType: 1,
   };
 
-  const CheckMacValue = generateCheckMacValue(orderData);
+  const html = create.payment_client.aio_check_out_all(order);
 
-  return NextResponse.json({
-    ...orderData,
-    CheckMacValue,
+  return new NextResponse(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
   });
-} 
+}
