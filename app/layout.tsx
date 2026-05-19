@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "八里福安寺",
   description: "福安寺官方網站",
