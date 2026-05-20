@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import qs from "qs";
 
-const HASH_KEY = "5294y06JbISpM5x9";
-const HASH_IV = "v77hoKGq4kWxNNIS";
+const HashKey = "5294y06JbISpM5x9";
+const HashIV = "v77hoKGq4kWxNNIS";
 
-function generateCheckMacValue(params: Record<string, string>): string {
-  const sorted = Object.keys(params).sort()
-    .map((key) => `${key}=${params[key]}`)
-    .join("&");
+function generateCheckMacValue(data: Record<string, string>) {
+  const sorted = Object.keys(data)
+    .sort()
+    .reduce((obj: any, key) => {
+      obj[key] = data[key];
+      return obj;
+    }, {});
 
-  const raw = `HashKey=${HASH_KEY}&${sorted}&HashIV=${HASH_IV}`;
+  const query = qs.stringify(sorted, { encode: false });
+
+  const raw = `HashKey=${HashKey}&${query}&HashIV=${HashIV}`;
 
   const encoded = encodeURIComponent(raw)
     .toLowerCase()
@@ -40,7 +46,7 @@ export async function GET() {
     `${String(now.getMinutes()).padStart(2, "0")}:` +
     `${String(now.getSeconds()).padStart(2, "0")}`;
 
-  const orderData: Record<string, string> = {
+  const data = {
     MerchantID: "3002607",
 
     MerchantTradeNo: `FUAN${Date.now().toString().slice(-10)}`,
@@ -51,47 +57,44 @@ export async function GET() {
 
     TotalAmount: "100",
 
-    TradeDesc: "FUAN TEMPLE",
+    TradeDesc: "TempleDonate",
 
     ItemName: "Donation",
 
     ReturnURL: "https://developers.ecpay.com.tw/",
-
-    ClientBackURL: "https://bali-fuan-template.vercel.app",
 
     ChoosePayment: "ALL",
 
     EncryptType: "1",
   };
 
-  const CheckMacValue = generateCheckMacValue(orderData);
+  const CheckMacValue = generateCheckMacValue(data);
 
   const formData = {
-    ...orderData,
+    ...data,
     CheckMacValue,
   };
 
   const html = `
-    <html>
-      <body>
-        <form
-          id="ecpay-form"
-          method="post"
-          action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
-        >
-          ${Object.entries(formData)
-            .map(
-              ([key, value]) =>
-                `<input type="hidden" name="${key}" value="${value}" />`
-            )
-            .join("")}
-        </form>
+  <html>
+    <body>
+      <form id="form" method="post"
+      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-        <script>
-          document.getElementById("ecpay-form").submit();
-        </script>
-      </body>
-    </html>
+        ${Object.entries(formData)
+          .map(
+            ([k, v]) =>
+              `<input type="hidden" name="${k}" value="${v}" />`
+          )
+          .join("")}
+
+      </form>
+
+      <script>
+        document.getElementById("form").submit();
+      </script>
+    </body>
+  </html>
   `;
 
   return new NextResponse(html, {
