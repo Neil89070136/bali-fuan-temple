@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-const HashKey = "5294y06JbISpM5x9";
-const HashIV = "v77hoKGq4kWxNNIS";
+const MerchantID = process.env.ECPAY_MERCHANT_ID ?? "3002607";
+const HashKey = process.env.ECPAY_HASH_KEY ?? "5294y06JbISpM5x9";
+const HashIV = process.env.ECPAY_HASH_IV ?? "v77hoKGq4kWxNNIS";
+const ECPAY_CHECKOUT_URL =
+  process.env.ECPAY_CHECKOUT_URL ??
+  "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ??
+  "http://localhost:3000";
 
 function generateCheckMacValue(params: Record<string, string>) {
   const sorted = Object.keys(params)
@@ -46,7 +53,7 @@ export async function GET() {
     String(now.getSeconds()).padStart(2, "0");
 
   const params: Record<string, string> = {
-    MerchantID: "3002607",
+    MerchantID,
 
     MerchantTradeNo: "FUAN" + Date.now(),
 
@@ -60,7 +67,8 @@ export async function GET() {
 
     ItemName: "建寺護持",
 
-    ReturnURL: "https://www.google.com",
+    ReturnURL: `${SITE_URL}/api/ecpay/return`,
+    ClientBackURL: `${SITE_URL}/donate-success`,
 
     ChoosePayment: "ALL",
 
@@ -75,7 +83,7 @@ export async function GET() {
   <body>
     <form id="ecpayForm"
       method="post"
-      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+      action="${ECPAY_CHECKOUT_URL}">
 
       ${Object.entries({
         ...params,
