@@ -13,7 +13,7 @@ const SITE_URL =
 
 function generateCheckMacValue(params: Record<string, string>) {
   const sorted = Object.keys(params)
-    .sort((a, b) => a.localeCompare(b))
+    .sort()
     .map((key) => `${key}=${params[key]}`)
     .join("&");
 
