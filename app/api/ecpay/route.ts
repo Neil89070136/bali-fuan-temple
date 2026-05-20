@@ -1,58 +1,96 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
-const ecpay_payment = require("ecpay_aio_nodejs");
+const HashKey = "5294y06JbISpM5x9";
+const HashIV = "v77hoKGq4kWxNNIS";
+
+function generateCheckMacValue(params: Record<string, string>) {
+  const sorted = Object.keys(params)
+    .sort((a, b) => a.localeCompare(b))
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+
+  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+
+  const encoded = encodeURIComponent(raw)
+    .toLowerCase()
+    .replace(/%20/g, "+")
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
+
+  return crypto
+    .createHash("sha256")
+    .update(encoded)
+    .digest("hex")
+    .toUpperCase();
+}
 
 export async function GET() {
-  try {
-    const base_param = {
-      MerchantTradeNo: "FUAN" + Date.now(),
-      MerchantTradeDate: new Date()
-        .toLocaleString("sv-SE")
-        .replace("T", " "),
+  const MerchantTradeDate = new Date()
+    .toLocaleString("sv-SE", {
+      timeZone: "Asia/Taipei",
+    })
+    .replace("T", " ");
 
-      TotalAmount: "100",
+  const params: Record<string, string> = {
+    MerchantID: "3002607",
 
-      TradeDesc: "福安寺捐款",
+    MerchantTradeNo: "FUAN" + Date.now(),
 
-      ItemName: "建寺護持",
+    MerchantTradeDate,
 
-      ReturnURL: "https://www.google.com",
+    PaymentType: "aio",
 
-      ChoosePayment: "ALL",
+    TotalAmount: "100",
 
-      EncryptType: 1,
-    };
+    TradeDesc: "福安寺捐款",
 
-    const options = {
-      OperationMode: "Test",
+    ItemName: "建寺護持",
 
-      MercProfile: {
-        MerchantID: "3002607",
+    ReturnURL: "https://www.google.com",
 
-        HashKey: "pwFHCqoQZGmho4w6",
+    ChoosePayment: "ALL",
 
-        HashIV: "EkRm7iFT261dpevs",
-      },
+    EncryptType: "1",
+  };
 
-      IgnorePayment: [],
+  const CheckMacValue = generateCheckMacValue(params);
 
-      IsProjectContractor: false,
-    };
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body>
+    <form id="ecpayForm"
+      method="post"
+      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-    const create = new ecpay_payment(options);
+      ${Object.entries({
+        ...params,
+        CheckMacValue,
+      })
+        .map(
+          ([key, value]) =>
+            `<input type="hidden" name="${key}" value="${value}" />`
+        )
+        .join("")}
 
-    const html = create.payment_client.aio_check_out_all(base_param);
+    </form>
 
-    return new NextResponse(html, {
-      headers: {
-        "Content-Type": "text/html",
-      },
-    });
-  } catch (err: any) {
-    return NextResponse.json({
-      error: true,
-      message: err.message,
-      stack: err.stack,
-    });
-  }
+    <script>
+      document.getElementById("ecpayForm").submit();
+    </script>
+  </body>
+  </html>
+  `;
+
+  return new NextResponse(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
 }
