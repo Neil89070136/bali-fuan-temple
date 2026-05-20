@@ -77,6 +77,11 @@ export async function GET() {
 
   const CheckMacValue = generateCheckMacValue(params);
 
+  console.log("ECPay request params:", {
+    ...params,
+    CheckMacValue,
+  });
+
   const html = `
   <!DOCTYPE html>
   <html>
