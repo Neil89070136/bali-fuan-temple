@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import qs from "qs";
+const qs = require("qs");
 
 const HashKey = "5294y06JbISpM5x9";
 const HashIV = "v77hoKGq4kWxNNIS";
