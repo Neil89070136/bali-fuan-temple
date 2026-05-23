@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-const MerchantID = process.env.ECPAY_MERCHANT_ID ?? "3002607";
-const HashKey = process.env.ECPAY_HASH_KEY ?? "5294y06JbISpM5x9";
-const HashIV = process.env.ECPAY_HASH_IV ?? "v77hoKGq4kWxNNIS";
-const ECPAY_CHECKOUT_URL =
-  process.env.ECPAY_CHECKOUT_URL ??
-  "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5";
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? process.env.SITE_URL ??
-  "http://localhost:3000";
+const HashKey = "5294y06JbISpM5x9";
+const HashIV = "v77hoKGq4kWxNNIS";
+
+function ecpayEncode(str: string) {
+  return encodeURIComponent(str)
+    .replace(/%20/g, "+")
+    .replace(/!/g, "%21")
+    .replace(/\*/g, "%2A")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29");
+}
 
 function generateCheckMacValue(params: Record<string, string>) {
   const sorted = Object.keys(params)
@@ -19,16 +21,7 @@ function generateCheckMacValue(params: Record<string, string>) {
 
   const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
-  const encoded = encodeURIComponent(raw)
-    .toLowerCase()
-    .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
-    .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+  const encoded = ecpayEncode(raw).toLowerCase();
 
   return crypto
     .createHash("sha256")
@@ -37,9 +30,10 @@ function generateCheckMacValue(params: Record<string, string>) {
     .toUpperCase();
 }
 
-export async function GET() {
+function getTradeDate() {
   const now = new Date();
-  const MerchantTradeDate =
+
+  return (
     now.getFullYear() +
     "/" +
     String(now.getMonth() + 1).padStart(2, "0") +
@@ -50,62 +44,64 @@ export async function GET() {
     ":" +
     String(now.getMinutes()).padStart(2, "0") +
     ":" +
-    String(now.getSeconds()).padStart(2, "0");
+    String(now.getSeconds()).padStart(2, "0")
+  );
+}
 
+export async function GET() {
   const params: Record<string, string> = {
-    MerchantID,
+    MerchantID: "3002607",
 
-    MerchantTradeNo: "FUAN" + Date.now(),
+    MerchantTradeNo:
+      "FUAN" + Date.now().toString().slice(-10),
 
-    MerchantTradeDate,
+    MerchantTradeDate: getTradeDate(),
 
     PaymentType: "aio",
 
     TotalAmount: "100",
 
-    TradeDesc: "福安寺捐款",
+    TradeDesc: "donate",
 
-    ItemName: "建寺護持",
+    ItemName: "donate",
 
-    ReturnURL: `${SITE_URL}/api/ecpay/return`,
-    ClientBackURL: `${SITE_URL}/donate-success`,
+    ReturnURL: "https://www.google.com",
 
     ChoosePayment: "ALL",
 
     EncryptType: "1",
   };
 
-  const CheckMacValue = generateCheckMacValue(params);
-
-  console.log("ECPay request params:", {
-    ...params,
-    CheckMacValue,
-  });
+  const CheckMacValue =
+    generateCheckMacValue(params);
 
   const html = `
-  <!DOCTYPE html>
   <html>
-  <body>
-    <form id="ecpayForm"
-      method="post"
-      action="${ECPAY_CHECKOUT_URL}">
+    <body>
+      <form
+        id="ecpayForm"
+        method="post"
+        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
+      >
 
-      ${Object.entries({
-        ...params,
-        CheckMacValue,
-      })
-        .map(
-          ([key, value]) =>
-            `<input type="hidden" name="${key}" value="${value}" />`
-        )
-        .join("")}
+        ${Object.entries({
+          ...params,
+          CheckMacValue,
+        })
+          .map(
+            ([key, value]) =>
+              `<input type="hidden"
+                name="${key}"
+                value="${value}" />`
+          )
+          .join("")}
 
-    </form>
+      </form>
 
-    <script>
-      document.getElementById("ecpayForm").submit();
-    </script>
-  </body>
+      <script>
+        document.getElementById("ecpayForm").submit();
+      </script>
+    </body>
   </html>
   `;
 
