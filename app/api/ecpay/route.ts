@@ -4,44 +4,87 @@ import crypto from "crypto";
 const HashKey = "5294y06JbISpM5x9";
 const HashIV = "v77hoKGq4kWxNNIS";
 
+export async function GET() {
+  const MerchantTradeDate = getEcpayDate();
+
+  console.log(MerchantTradeDate);
+
+  const params: Record<string, string> = {
+    MerchantID: "3002607",
+    MerchantTradeNo: "FUAN" + Date.now(),
+    MerchantTradeDate,
+    PaymentType: "aio",
+    TotalAmount: "100",
+    TradeDesc: "test",
+    ItemName: "donate",
+    ReturnURL: "https://www.ecpay.com.tw/receive.php",
+    ChoosePayment: "ALL",
+    EncryptType: "1",
+  };
+
+  const CheckMacValue = generateCheckMacValue(params);
+
+  console.log("CHECKMAC:", CheckMacValue);
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>ECPay</title>
+</head>
+<body>
+
+<form id="ecpay-form"
+      method="post"
+      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+
+  ${Object.entries({
+    ...params,
+    CheckMacValue,
+  })
+    .map(
+      ([key, value]) =>
+        `<input type="hidden" name="${key}" value="${value}" />`
+    )
+    .join("")}
+
+</form>
+
+<script>
+document.getElementById("ecpay-form").submit();
+</script>
+
+</body>
+</html>
+`;
+
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
+}
+
 function generateCheckMacValue(params: Record<string, string>) {
-  // 移除 CheckMacValue
-  const filtered = { ...params };
-  delete filtered.CheckMacValue;
+  const sorted = Object.keys(params)
+    .sort((a, b) => a.localeCompare(b))
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
 
-  // 官方排序
-  const sorted = Object.keys(filtered)
-    .sort()
-    .reduce((acc: Record<string, string>, key) => {
-      acc[key] = filtered[key];
-      return acc;
-    }, {});
+  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
-  // 組字串
-  let raw = `HashKey=${HashKey}`;
-
-  for (const key in sorted) {
-    raw += `&${key}=${sorted[key]}`;
-  }
-
-  raw += `&HashIV=${HashIV}`;
-
-  // 官方 urlencode 規則
   const encoded = encodeURIComponent(raw)
-    .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
-    .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
-    .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+    .replace(/!/g, "%21")
+    .replace(/\*/g, "%2A")
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .toLowerCase();
 
   console.log("RAW:", raw);
   console.log("ENCODED:", encoded);
 
-  // SHA256
   return crypto
     .createHash("sha256")
     .update(encoded)
@@ -49,72 +92,20 @@ function generateCheckMacValue(params: Record<string, string>) {
     .toUpperCase();
 }
 
-export async function GET() {
-  const now = new Date();
+function getEcpayDate() {
+  const d = new Date();
 
-  const MerchantTradeDate =
-    `${now.getFullYear()}/` +
-    `${String(now.getMonth() + 1).padStart(2, "0")}/` +
-    `${String(now.getDate()).padStart(2, "0")} ` +
-    `${String(now.getHours()).padStart(2, "0")}:` +
-    `${String(now.getMinutes()).padStart(2, "0")}:` +
-    `${String(now.getSeconds()).padStart(2, "0")}`;
+  const yyyy = d.getFullYear();
 
-  const data: Record<string, string> = {
-    MerchantID: "3002607",
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
 
-    MerchantTradeNo:
-      "FUAN" + Date.now().toString().slice(-10),
+  const dd = String(d.getDate()).padStart(2, "0");
 
-    MerchantTradeDate,
+  const hh = String(d.getHours()).padStart(2, "0");
 
-    PaymentType: "aio",
+  const mi = String(d.getMinutes()).padStart(2, "0");
 
-    TotalAmount: "100",
+  const ss = String(d.getSeconds()).padStart(2, "0");
 
-    TradeDesc: "Test",
-
-    ItemName: "Donate",
-
-    ReturnURL:
-      "https://developers.ecpay.com.tw/",
-
-    ChoosePayment: "ALL",
-
-    EncryptType: "1",
-  };
-
-  data.CheckMacValue = generateCheckMacValue(data);
-
-  console.log("CHECKMAC:", data.CheckMacValue);
-
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <body>
-    <form id="ecpayForm"
-      method="post"
-      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
-
-      ${Object.entries(data)
-        .map(
-          ([key, value]) =>
-            `<input type="hidden" name="${key}" value="${value}" />`
-        )
-        .join("")}
-
-    </form>
-
-    <script>
-      document.getElementById("ecpayForm").submit();
-    </script>
-  </body>
-  </html>
-  `;
-
-  return new NextResponse(html, {
-    headers: {
-      "Content-Type": "text/html",
-    },
-  });
+  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
 }
