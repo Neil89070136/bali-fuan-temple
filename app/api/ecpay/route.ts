@@ -5,9 +5,8 @@ const HashKey = "5294y06JbISpM5x9";
 const HashIV = "v77hoKGq4kWxNNIS";
 
 export async function GET() {
-  const MerchantTradeDate = getEcpayDate();
 
-  console.log(MerchantTradeDate);
+  const MerchantTradeDate = getEcpayDate();
 
   const params: Record<string, string> = {
     MerchantID: "3002607",
@@ -22,42 +21,40 @@ export async function GET() {
     EncryptType: "1",
   };
 
-  const CheckMacValue = generateCheckMacValue(params);
+  const result = generateCheckMacValue(params);
 
-  console.log("CHECKMAC:", CheckMacValue);
+  console.log("RAW:", result.raw);
+  console.log("ENCODED:", result.encoded);
+  console.log("CHECKMAC:", result.checkMacValue);
 
   const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>ECPay</title>
-</head>
-<body>
+  <!DOCTYPE html>
+  <html>
+  <body>
 
-<form id="ecpay-form"
-      method="post"
-      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+  <form id="ecpay-form"
+        method="post"
+        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-  ${Object.entries({
-    ...params,
-    CheckMacValue,
-  })
-    .map(
-      ([key, value]) =>
-        `<input type="hidden" name="${key}" value="${value}" />`
-    )
-    .join("")}
+    ${Object.entries({
+      ...params,
+      CheckMacValue: result.checkMacValue,
+    })
+      .map(
+        ([key, value]) =>
+          `<input type="hidden" name="${key}" value="${value}" />`
+      )
+      .join("")}
 
-</form>
+  </form>
 
-<script>
-document.getElementById("ecpay-form").submit();
-</script>
+  <script>
+    document.getElementById("ecpay-form").submit();
+  </script>
 
-</body>
-</html>
-`;
+  </body>
+  </html>
+  `;
 
   return new Response(html, {
     headers: {
@@ -67,32 +64,41 @@ document.getElementById("ecpay-form").submit();
 }
 
 function generateCheckMacValue(params: Record<string, string>) {
+
   const sorted = Object.keys(params)
-    .sort((a, b) => a.localeCompare(b))
+    .sort()
     .map((key) => `${key}=${params[key]}`)
     .join("&");
 
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+  const raw =
+    `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
   const encoded = encodeURIComponent(raw)
+    .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/!/g, "%21")
-    .replace(/\*/g, "%2A")
-    .replace(/\(/g, "%28")
-    .replace(/\)/g, "%29")
-    .toLowerCase();
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 
-  console.log("RAW:", raw);
-  console.log("ENCODED:", encoded);
-
-  return crypto
+  const checkMacValue = crypto
     .createHash("sha256")
     .update(encoded)
     .digest("hex")
     .toUpperCase();
+
+  return {
+    raw,
+    encoded,
+    checkMacValue,
+  };
 }
 
 function getEcpayDate() {
+
   const d = new Date();
 
   const yyyy = d.getFullYear();
