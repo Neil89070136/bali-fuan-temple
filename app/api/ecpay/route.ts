@@ -23,9 +23,11 @@ export async function GET() {
 
   const result = generateCheckMacValue(params);
 
-  console.log("RAW:", result.raw);
-  console.log("ENCODED:", result.encoded);
-  console.log("CHECKMAC:", result.checkMacValue);
+  console.log({
+    RAW: result.raw,
+    ENCODED: result.encoded,
+    CHECKMAC: result.checkMacValue,
+  });
 
   const html = `
   <!DOCTYPE html>
