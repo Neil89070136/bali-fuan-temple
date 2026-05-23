@@ -5,16 +5,29 @@ const HashKey = "5294y06JbISpM5x9";
 const HashIV = "v77hoKGq4kWxNNIS";
 
 function generateCheckMacValue(params: Record<string, string>) {
-  const sorted = Object.keys(params)
-    .sort((a, b) => a.localeCompare(b))
-    .map((key) => `${key}=${params[key]}`)
-    .join("&");
+  // 移除 CheckMacValue
+  const filtered = { ...params };
+  delete filtered.CheckMacValue;
 
-  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
+  // 官方排序
+  const sorted = Object.keys(filtered)
+    .sort()
+    .reduce((acc: Record<string, string>, key) => {
+      acc[key] = filtered[key];
+      return acc;
+    }, {});
 
-  let encoded = encodeURIComponent(raw);
+  // 組字串
+  let raw = `HashKey=${HashKey}`;
 
-  encoded = encoded
+  for (const key in sorted) {
+    raw += `&${key}=${sorted[key]}`;
+  }
+
+  raw += `&HashIV=${HashIV}`;
+
+  // 官方 urlencode 規則
+  const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
     .replace(/%2d/g, "-")
@@ -25,6 +38,10 @@ function generateCheckMacValue(params: Record<string, string>) {
     .replace(/%28/g, "(")
     .replace(/%29/g, ")");
 
+  console.log("RAW:", raw);
+  console.log("ENCODED:", encoded);
+
+  // SHA256
   return crypto
     .createHash("sha256")
     .update(encoded)
@@ -43,10 +60,9 @@ export async function GET() {
     `${String(now.getMinutes()).padStart(2, "0")}:` +
     `${String(now.getSeconds()).padStart(2, "0")}`;
 
-  console.log(MerchantTradeDate);
-
   const data: Record<string, string> = {
     MerchantID: "3002607",
+
     MerchantTradeNo:
       "FUAN" + Date.now().toString().slice(-10),
 
@@ -56,9 +72,9 @@ export async function GET() {
 
     TotalAmount: "100",
 
-    TradeDesc: "donate",
+    TradeDesc: "Test",
 
-    ItemName: "donate",
+    ItemName: "Donate",
 
     ReturnURL:
       "https://developers.ecpay.com.tw/",
@@ -70,31 +86,33 @@ export async function GET() {
 
   data.CheckMacValue = generateCheckMacValue(data);
 
-  const formHtml = `
-    <!DOCTYPE html>
-    <html>
-    <body>
-      <form id="ecpayForm"
-        method="post"
-        action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
+  console.log("CHECKMAC:", data.CheckMacValue);
 
-        ${Object.entries(data)
-          .map(
-            ([key, value]) =>
-              `<input type="hidden" name="${key}" value="${value}" />`
-          )
-          .join("")}
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <body>
+    <form id="ecpayForm"
+      method="post"
+      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
 
-      </form>
+      ${Object.entries(data)
+        .map(
+          ([key, value]) =>
+            `<input type="hidden" name="${key}" value="${value}" />`
+        )
+        .join("")}
 
-      <script>
-        document.getElementById("ecpayForm").submit();
-      </script>
-    </body>
-    </html>
+    </form>
+
+    <script>
+      document.getElementById("ecpayForm").submit();
+    </script>
+  </body>
+  </html>
   `;
 
-  return new NextResponse(formHtml, {
+  return new NextResponse(html, {
     headers: {
       "Content-Type": "text/html",
     },
