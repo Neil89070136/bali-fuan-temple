@@ -18,7 +18,7 @@ export async function GET() {
 
     ReturnURL: "https://www.ecpay.com.tw/receive.php",
 
-    ChoosePayment: "ALL",
+    ChoosePayment: "Credit",
     EncryptType: "1",
   };
 
