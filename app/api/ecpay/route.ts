@@ -1,63 +1,51 @@
-import { generateCheckMacValue } from "@/lib/ecpay";
+import { NextResponse } from "next/server";
+
+const options = {
+  OperationMode: "Test",
+  MercProfile: {
+    MerchantID: "3002607",
+    HashKey: "5294y06JbISpM5x9",
+    HashIV: "v77hoKGq4kWxNNIS",
+  },
+  IgnorePayment: [],
+  IsProjectContractor: false,
+};
 
 export async function GET() {
-  const params: Record<string, string> = {
-    MerchantID: process.env.ECPAY_MERCHANT_ID!,
-    MerchantTradeNo: `FUAN${Date.now()}`,
-    MerchantTradeDate: new Date()
-      .toLocaleString("sv-SE", {
-        timeZone: "Asia/Taipei",
-      })
-      .replace("T", " "),
-    PaymentType: "aio",
+  const ecpay_payment = require("ecpay_aio_nodejs");
+
+  const create = new ecpay_payment(options);
+
+  const date = new Date();
+
+  const MerchantTradeDate =
+    date.getFullYear() +
+    "/" +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    "/" +
+    String(date.getDate()).padStart(2, "0") +
+    " " +
+    String(date.getHours()).padStart(2, "0") +
+    ":" +
+    String(date.getMinutes()).padStart(2, "0") +
+    ":" +
+    String(date.getSeconds()).padStart(2, "0");
+
+  const base_param = {
+    MerchantTradeNo: "FUAN" + Date.now(),
+    MerchantTradeDate,
     TotalAmount: "100",
-    TradeDesc: "test",
-    ItemName: "donate",
+    TradeDesc: "Temple Donate",
+    ItemName: "Donation",
     ReturnURL: "https://www.ecpay.com.tw/receive.php",
     ChoosePayment: "ALL",
-    EncryptType: "1",
+    ClientBackURL: "https://google.com",
+    ItemURL: "https://google.com",
+    Remark: "test",
+    EncryptType: 1,
   };
 
-  const result = generateCheckMacValue(params);
-
-  console.log({
-    RAW: result.raw,
-    ENCODED: result.encoded,
-    CHECKMAC: result.checkMacValue,
-  });
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<body>
-
-<form id="ecpay-form"
-      method="post"
-      action="https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5">
-
-${Object.entries({
-  ...params,
-  CheckMacValue: result.checkMacValue,
-})
-  .map(
-    ([key, value]) =>
-      `<input type="hidden" name="${key}" value="${value}" />`
-  )
-  .join("")}
-
-<button type="submit">
-前往付款
-</button>
-
-</form>
-
-<script>
-document.getElementById("ecpay-form").submit();
-</script>
-
-</body>
-</html>
-`;
+  const html = create.payment_client.aio_check_out_all(base_param);
 
   return new Response(html, {
     headers: {
