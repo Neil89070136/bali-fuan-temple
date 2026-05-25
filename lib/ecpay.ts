@@ -30,7 +30,7 @@ export function generateCheckMacValue(params: Record<string, string>) {
     .toLowerCase();
 
   const checkMacValue = crypto
-    .createHash("sha256")
+    .createHash("md5")
     .update(encoded)
     .digest("hex")
     .toUpperCase();
