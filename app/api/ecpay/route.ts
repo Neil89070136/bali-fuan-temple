@@ -8,14 +8,28 @@ export async function GET() {
     .replace("T", " ");
 
   const params = {
+    MerchantID: "3002607",
+
     MerchantTradeNo: "FUAN" + Date.now(),
+
     MerchantTradeDate,
+
+    PaymentType: "aio",
+
     TotalAmount: "100",
+
     TradeDesc: "test",
+
     ItemName: "donate",
-    ReturnURL: "https://www.ecpay.com.tw/receive.php",
+
+    ReturnURL:
+      "https://developers.ecpay.com.tw/WebSiteSetting/AioCheckOut_ReturnURL",
+
     ClientBackURL: "https://google.com",
+
     ChoosePayment: "Credit",
+
+    EncryptType: 1,
   };
 
   const html = create.payment_client.aio_check_out_all(params);

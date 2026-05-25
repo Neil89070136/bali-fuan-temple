@@ -1,36 +1,29 @@
 import crypto from "crypto";
 
-const HASH_KEY = "5294y06JbISpM5x9";
-const HASH_IV = "v77hoKGq4kWxNNIS";
+const HashKey = process.env.ECPAY_HASH_KEY!;
+const HashIV = process.env.ECPAY_HASH_IV!;
 
-export function getEcpayDate() {
-  const d = new Date();
-
-  const yyyy = d.getFullYear();
-  const MM = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-
-  const HH = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-
-  return `${yyyy}/${MM}/${dd} ${HH}:${mm}:${ss}`;
-}
-
-export function generateCheckMacValue(params: Record<string, string>) {
-  const sorted = Object.entries(params)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}=${v}`)
+export function generateCheckMacValue(data: Record<string, string>) {
+  const sorted = Object.keys(data)
+    .sort()
+    .map((key) => `${key}=${data[key]}`)
     .join("&");
 
-  const raw = `HashKey=${HASH_KEY}&${sorted}&HashIV=${HASH_IV}`;
+  const raw = `HashKey=${HashKey}&${sorted}&HashIV=${HashIV}`;
 
   const encoded = encodeURIComponent(raw)
+    .toLowerCase()
     .replace(/%20/g, "+")
-    .toLowerCase();
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 
   const checkMacValue = crypto
-    .createHash("md5")
+    .createHash("sha256")
     .update(encoded)
     .digest("hex")
     .toUpperCase();
@@ -40,4 +33,28 @@ export function generateCheckMacValue(params: Record<string, string>) {
     encoded,
     checkMacValue,
   };
+}
+
+export function getEcpayDate() {
+  const date = new Date();
+
+  const taiwan = new Date(
+    date.toLocaleString("en-US", {
+      timeZone: "Asia/Taipei",
+    })
+  );
+
+  const yyyy = taiwan.getFullYear();
+
+  const mm = String(taiwan.getMonth() + 1).padStart(2, "0");
+
+  const dd = String(taiwan.getDate()).padStart(2, "0");
+
+  const hh = String(taiwan.getHours()).padStart(2, "0");
+
+  const mi = String(taiwan.getMinutes()).padStart(2, "0");
+
+  const ss = String(taiwan.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
 }
