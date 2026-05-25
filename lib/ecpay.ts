@@ -3,9 +3,9 @@ import crypto from "crypto";
 const HashKey = process.env.ECPAY_HASH_KEY!;
 const HashIV = process.env.ECPAY_HASH_IV!;
 
-export function generateCheckMacValue(data: Record<string, string>) {
+export function generateCheckMacValue(data: Record<string, any>) {
   const sorted = Object.keys(data)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .map((key) => `${key}=${data[key]}`)
     .join("&");
 
@@ -14,13 +14,13 @@ export function generateCheckMacValue(data: Record<string, string>) {
   const encoded = encodeURIComponent(raw)
     .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/%2d/g, "-")
-    .replace(/%5f/g, "_")
-    .replace(/%2e/g, ".")
     .replace(/%21/g, "!")
-    .replace(/%2a/g, "*")
     .replace(/%28/g, "(")
-    .replace(/%29/g, ")");
+    .replace(/%29/g, ")")
+    .replace(/%2a/g, "*")
+    .replace(/%2d/g, "-")
+    .replace(/%2e/g, ".")
+    .replace(/%5f/g, "_");
 
   const checkMacValue = crypto
     .createHash("sha256")
@@ -28,33 +28,15 @@ export function generateCheckMacValue(data: Record<string, string>) {
     .digest("hex")
     .toUpperCase();
 
-  return {
-    raw,
-    encoded,
-    checkMacValue,
-  };
+  return checkMacValue;
 }
 
 export function getEcpayDate() {
   const date = new Date();
 
-  const taiwan = new Date(
-    date.toLocaleString("en-US", {
+  return date
+    .toLocaleString("sv-SE", {
       timeZone: "Asia/Taipei",
     })
-  );
-
-  const yyyy = taiwan.getFullYear();
-
-  const mm = String(taiwan.getMonth() + 1).padStart(2, "0");
-
-  const dd = String(taiwan.getDate()).padStart(2, "0");
-
-  const hh = String(taiwan.getHours()).padStart(2, "0");
-
-  const mi = String(taiwan.getMinutes()).padStart(2, "0");
-
-  const ss = String(taiwan.getSeconds()).padStart(2, "0");
-
-  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
+    .replace("T", " ");
 }
