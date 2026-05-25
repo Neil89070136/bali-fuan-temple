@@ -1,15 +1,10 @@
-import { generateCheckMacValue } from "@/lib/ecpay";
+import { generateCheckMacValue, getEcpayDate } from "@/lib/ecpay";
 
 export async function GET() {
-  const params: Record<string, string> = {
-    MerchantID: process.env.ECPAY_MERCHANT_ID!,
-    MerchantTradeNo: `FUAN${Date.now()}`,
-
-    MerchantTradeDate: new Date()
-      .toLocaleString("sv-SE", {
-        timeZone: "Asia/Taipei",
-      })
-      .replace("T", " "),
+  const params = {
+    MerchantID: "3002607",
+    MerchantTradeNo: "FUAN" + Date.now(),
+    MerchantTradeDate: getEcpayDate(),
 
     PaymentType: "aio",
     TotalAmount: "100",
@@ -19,6 +14,8 @@ export async function GET() {
     ReturnURL: "https://www.ecpay.com.tw/receive.php",
 
     ChoosePayment: "Credit",
+    IgnorePayment: "",
+
     EncryptType: "1",
   };
 

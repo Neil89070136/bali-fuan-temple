@@ -1,36 +1,45 @@
 import crypto from "crypto";
 
-const HashKey = process.env.ECPAY_HASH_KEY!;
-const HashIV = process.env.ECPAY_HASH_IV!;
+const HASH_KEY = "5294y06JbISpM5x9";
+const HASH_IV = "v77hoKGq4kWxNNIS";
 
-export function generateCheckMacValue(data: Record<string, string>) {
-  // 排序
-  const sorted = Object.keys(data)
+export function getEcpayDate() {
+  const d = new Date();
+
+  const yyyy = d.getFullYear();
+
+  const MM = String(d.getMonth() + 1).padStart(2, "0");
+
+  const dd = String(d.getDate()).padStart(2, "0");
+
+  const HH = String(d.getHours()).padStart(2, "0");
+
+  const mm = String(d.getMinutes()).padStart(2, "0");
+
+  const ss = String(d.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}/${MM}/${dd} ${HH}:${mm}:${ss}`;
+}
+
+export function generateCheckMacValue(params: Record<string, string>) {
+  const sorted = Object.keys(params)
     .sort((a, b) => a.localeCompare(b))
-    .reduce((obj, key) => {
-      obj[key] = data[key];
-      return obj;
-    }, {} as Record<string, string>);
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
 
-  // 組合字串
-  let raw = `HashKey=${HashKey}`;
+  const raw = `HashKey=${HASH_KEY}&${sorted}&HashIV=${HASH_IV}`;
 
-  for (const key in sorted) {
-    raw += `&${key}=${sorted[key]}`;
-  }
-
-  raw += `&HashIV=${HashIV}`;
-
-  // 綠界 encode 規則
   const encoded = encodeURIComponent(raw)
+    .toLowerCase()
     .replace(/%20/g, "+")
-    .replace(/!/g, "%21")
-    .replace(/\*/g, "%2a")
-    .replace(/\(/g, "%28")
-    .replace(/\)/g, "%29")
-    .toLowerCase();
+    .replace(/%2d/g, "-")
+    .replace(/%5f/g, "_")
+    .replace(/%2e/g, ".")
+    .replace(/%21/g, "!")
+    .replace(/%2a/g, "*")
+    .replace(/%28/g, "(")
+    .replace(/%29/g, ")");
 
-  // SHA256
   const checkMacValue = crypto
     .createHash("sha256")
     .update(encoded)
